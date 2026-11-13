@@ -1,0 +1,20 @@
+.profile-card { display: flex; align-items: center; gap: 24rpx; margin: 12rpx 0 34rpx; padding: 36rpx; border-radius: 32rpx; color: #fff; background: linear-gradient(135deg,#1d594b,#367c69); }
+.avatar { display: flex; align-items: center; justify-content: center; width: 96rpx; height: 96rpx; border-radius: 30rpx; color: #295f50; background: #fff4d9; font-size: 42rpx; font-weight: 700; }
+.name { display: block; margin-bottom: 8rpx; font-size: 35rpx; font-weight: 700; }
+.profile-card .muted { color: rgba(255,255,255,.7); }
+.menu { overflow: hidden; border-radius: 30rpx; background: #fffdf8; box-shadow: 0 10rpx 30rpx rgba(48,68,60,.06); }
+.menu-row { display: grid; grid-template-columns: 70rpx 1fr 30rpx; align-items: center; gap: 16rpx; padding: 26rpx; border-bottom: 1rpx solid #edf0ed; }
+.menu-row:last-child { border: 0; }
+.menu-row view text { display: block; }
+.icon { display: flex; align-items: center; justify-content: center; width: 62rpx; height: 62rpx; border-radius: 20rpx; color: #87503d; background: #fae6dc; font-size: 24rpx; font-weight: 700; }
+.icon.ai { color: #246b58; background: #e4f1eb; }
+.privacy { margin-top: 28rpx; }
+.privacy .title, .privacy .muted { display: block; margin-bottom: 10rpx; }
+.logout { margin-top: 30rpx; border: 0; color: #8a6557; background: transparent; font-size: 25rpx; }
+.logout::after { border: 0; }
+.modal-mask { position: fixed; z-index: 20; inset: 0; display: flex; align-items: flex-end; padding: 24rpx; box-sizing: border-box; background: rgba(19,39,32,.5); }
+.edit-card { width: 100%; padding: 34rpx 34rpx calc(34rpx + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 34rpx; background: #fffdf8; }
+.edit-card > .title { display: block; margin-bottom: 26rpx; font-size: 34rpx; }
+.edit-card .btn { margin-top: 28rpx; }
+.cancel { margin-top: 8rpx; border: 0; color: #718079; background: transparent; font-size: 25rpx; }
+.cancel::after { border: 0; }

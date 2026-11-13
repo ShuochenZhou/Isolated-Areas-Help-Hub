@@ -1,0 +1,20 @@
+.login-card .title, .login-card .muted { display: block; margin-bottom: 20rpx; }
+/* A request card's two detail lines (what and when; who and where) each start on their own line;
+   as inline <text> they ran together into one line. */
+.card > text.muted { display: block; margin-top: 8rpx; }
+.actions { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 20rpx; }
+.actions button { margin: 0; }
+.inventory-row { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.inventory-row > view:first-child { min-width: 0; }
+.inventory-row text { display: block; margin-bottom: 6rpx; }
+.actions.compact { flex: 0 0 auto; margin-top: 0; }
+.route-row { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; padding-top: 20rpx; margin-top: 20rpx; border-top: 1rpx solid #e8e3d9; }
+.trip-map { width: 100%; height: 420rpx; margin-bottom: 16rpx; border-radius: 20rpx; }
+.trip { padding-top: 14rpx; border-top: 1rpx solid #eee6d8; margin-top: 14rpx; }
+.stop-done { text-decoration: line-through; opacity: .6; }
+.leg { padding-top: 18rpx; border-top: 1rpx solid #eee6d8; margin-top: 18rpx; }
+.leg .muted { display: block; margin-top: 6rpx; }
+.leg-current { padding: 18rpx; border: 2rpx solid #246b58; border-radius: 16rpx; background: #f1f7f3; }
+.leg-done { opacity: .55; }
+.nav-btn { margin: 14rpx 0 0; }
+.whoami { display: block; margin-bottom: 16rpx; }

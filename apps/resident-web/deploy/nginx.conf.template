@@ -1,0 +1,86 @@
+# Rendered by the nginx image at start-up (envsubst): ${BACKEND_URL} is the backend's base URL;
+# ${API_ALLOWED_ORIGIN} is the one other site whose pages may call /api (empty: none).
+
+# Only that site's Origin reaches the backend, whose CORS rules then answer it. Any other Origin
+# is dropped: this server's own pages are same-origin, and the backend's CORS must not judge them
+# (behind TLS offload or a non-default port it would see a "different" origin and refuse them).
+map $http_origin $api_origin {
+    default "";
+    "${API_ALLOWED_ORIGIN}" $http_origin;
+}
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # The backend's address is looked up again every few seconds. Each backend release moves it to
+    # new instances behind the same internal domain; resolved only once at start-up, the old address
+    # kept every /api call timing out (504) until this gateway was restarted.
+    # ${NGINX_LOCAL_RESOLVERS} is the container's own DNS (NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1).
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+    resolver_timeout 5s;
+
+    # Behind a load balancer or gateway on a private network, the client's address is in
+    # X-Forwarded-For; from anywhere else that header is ignored, so it cannot be forged to
+    # dodge the backend's per-address rate limit.
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    set_real_ip_from 100.64.0.0/10;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+
+    gzip on;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml application/manifest+json;
+
+    # Scripts and API calls only from this origin; map tiles from Amap (or the CARTO fallback);
+    # the pages may be framed only by this site's own entry page.
+    set $csp "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.is.autonavi.com https://*.basemaps.cartocdn.com; connect-src 'self'; font-src 'self' data:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'";
+    add_header Content-Security-Policy $csp always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    # The backend API, on the same origin as the pages.
+    location /api/ {
+        # A variable makes nginx resolve the host per request (through the resolver above). With no
+        # path in the URL the request URI is passed on unchanged, as before.
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $proxy_host;
+        # An https:// BACKEND_URL (the backend's public domain) needs SNI for its certificate.
+        proxy_ssl_server_name on;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # See the map above. Auth is a bearer token, never a cookie.
+        proxy_set_header Origin $api_origin;
+        # Browsers can never claim a WeChat identity: the gateway headers are dropped here.
+        proxy_set_header X-WX-OPENID "";
+        proxy_set_header X-WX-APPID "";
+        proxy_set_header X-WX-ENV "";
+        proxy_set_header X-WX-UNIONID "";
+        proxy_set_header X-WX-SOURCE "";
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 75s;
+        client_max_body_size 1m;
+    }
+
+    # Hashed build output never changes.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Cache-Control "no-cache";
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        try_files $uri $uri/ /index.html;
+    }
+}

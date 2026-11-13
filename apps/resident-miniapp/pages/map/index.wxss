@@ -1,0 +1,17 @@
+.map-page { position: relative; height: 100vh; overflow: hidden; }
+.map { width: 100%; height: 100%; }
+.legend { position: absolute; top: 24rpx; left: 24rpx; display: flex; flex-wrap: wrap; gap: 8rpx 22rpx; max-width: calc(100% - 48rpx); box-sizing: border-box; padding: 16rpx 22rpx; border-radius: 20rpx; background: rgba(255,253,248,.94); font-size: 23rpx; box-shadow: 0 8rpx 28rpx rgba(32,59,50,.12); }
+.legend-item { display: flex; align-items: center; }
+.dot { width: 15rpx; height: 15rpx; margin-right: 9rpx; border-radius: 50%; background: #246b58; }
+.dot.orange { background: #c65c3f; }
+.dot.blue { background: #2f6fd6; box-shadow: 0 0 0 4rpx rgba(47,111,214,.25); }
+.sheet { position: absolute; left: 24rpx; right: 24rpx; bottom: 34rpx; padding: 30rpx; border-radius: 30rpx; background: #fffdf8; box-shadow: 0 16rpx 50rpx rgba(32,59,50,.18); }
+.sheet .btn { margin-top: 24rpx; }
+.map-state { position: absolute; top: 106rpx; left: 50%; width: 560rpx; padding: 20rpx 24rpx; box-sizing: border-box; border-radius: 20rpx; color: #52655e; background: rgba(255,253,248,.96); font-size: 24rpx; line-height: 1.5; text-align: center; transform: translateX(-50%); box-shadow: 0 8rpx 28rpx rgba(32,59,50,.12); }
+.map-state.place { color: #52655e; }
+.map-state.empty-state { top: 268rpx; }
+.map-state.error { color: #8b4c38; }
+.map-state button { display: inline-block; margin: 12rpx 0 0; padding: 0 24rpx; border: 0; border-radius: 16rpx; color: #fff; background: #246b58; font-size: 23rpx; line-height: 58rpx; }
+.map-state button::after { border: 0; }
+.map-state.tracking { display: flex; flex-direction: column; color: #22312b; }
+.map-state.tracking .title { font-weight: 600; font-size: 27rpx; }

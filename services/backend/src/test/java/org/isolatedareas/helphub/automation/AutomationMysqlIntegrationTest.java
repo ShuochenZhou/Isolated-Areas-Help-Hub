@@ -1,0 +1,330 @@
+package org.isolatedareas.helphub.automation;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.function.Supplier;
+import org.flywaydb.core.Flyway;
+import org.isolatedareas.helphub.audit.AuditService;
+import org.isolatedareas.helphub.domain.FulfillmentMethod;
+import org.isolatedareas.helphub.domain.RequestStatus;
+import org.isolatedareas.helphub.domain.Urgency;
+import org.isolatedareas.helphub.events.OutboxService;
+import org.isolatedareas.helphub.inventory.InventoryRepository;
+import org.isolatedareas.helphub.inventory.ReservationCollected;
+import org.isolatedareas.helphub.inventory.ReservationExpired;
+import org.isolatedareas.helphub.inventory.ReservationService;
+import org.isolatedareas.helphub.requests.CreateSupplyRequest;
+import org.isolatedareas.helphub.requests.RequestService;
+import org.isolatedareas.helphub.requests.SupplyRequestRepository;
+import org.isolatedareas.helphub.requests.SupplyRequestView;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/**
+ * Runs staff approval, reservation, cart dispatch and simulated delivery against a
+ * real MySQL database migrated with the production migrations (set REPRO_MYSQL_URL,
+ * REPRO_MYSQL_USER and REPRO_MYSQL_PASSWORD).
+ */
+@EnabledIfEnvironmentVariable(named = "REPRO_MYSQL_URL", matches = ".+")
+class AutomationMysqlIntegrationTest {
+    // Close to the industrial-park service point, far from Xiayang.
+    private static final BigDecimal NEAR_INDUSTRIAL_LAT = new BigDecimal("31.1790");
+    private static final BigDecimal NEAR_INDUSTRIAL_LON = new BigDecimal("121.0950");
+
+    @Test
+    void approvalReservesThenDispatchesAndDelivers() {
+        var ds = new DriverManagerDataSource(System.getenv("REPRO_MYSQL_URL"),
+            System.getenv("REPRO_MYSQL_USER"), System.getenv("REPRO_MYSQL_PASSWORD"));
+        Flyway.configure().dataSource(ds).locations("classpath:db/migration").cleanDisabled(false).load().clean();
+        Flyway.configure().dataSource(ds).locations("classpath:db/migration").load().migrate();
+        var jdbc = JdbcClient.create(ds);
+        var json = new ObjectMapper().findAndRegisterModules();
+        var audit = new AuditService(jdbc, json);
+        var outbox = new OutboxService(jdbc, json);
+        var requests = new SupplyRequestRepository(jdbc);
+        var requestService = new RequestService(requests, outbox, audit, jdbc);
+        var system = new SystemActor(jdbc);
+        var lifecycle = new RequestLifecycleListener(requestService, requests, system, jdbc);
+        // Delivers the events Spring would, so handover and expiry close requests as in production.
+        ApplicationEventPublisher publisher = event -> {
+            if (event instanceof ReservationCollected collected) lifecycle.onCollected(collected);
+            if (event instanceof ReservationExpired expired) lifecycle.onExpired(expired);
+        };
+        var reservations = new ReservationService(jdbc, new InventoryRepository(jdbc), requests,
+            mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS), outbox, audit, publisher,
+            "integration-test-pickup-code-secret-0123456789");
+        var decisions = new ApprovalService(jdbc, requests, requestService, reservations);
+        var trips = new CartTripService(jdbc, requestService, requests, reservations, system);
+        var tx = new TransactionTemplate(new DataSourceTransactionManager(ds));
+
+        assertThat(jdbc.sql("""
+                SELECT CONCAT(table_name, '.', column_name) FROM information_schema.columns
+                WHERE table_schema = DATABASE() AND LOWER(extra) LIKE '%on update%' AND column_name <> 'updated_at'
+                """).query(String.class).list()).isEmpty();
+        assertThat(system.id()).isPositive();
+
+        // Emoji are 4-byte UTF-8; the CloudRun template database is 3-byte utf8 until V16.
+        jdbc.sql("INSERT INTO users (wechat_open_id, display_name) VALUES ('it-resident', '测试居民😀')").update();
+        long resident = jdbc.sql("SELECT id FROM users WHERE wechat_open_id='it-resident'").query(Long.class).single();
+        long xiayangRice = itemId(jdbc, "QP-XY-RICE-5KG");
+        long industrialRice = itemId(jdbc, "QP-GY-RICE-5KG");
+        long torch = itemId(jdbc, "QP-XY-LIGHT-01");
+        Supplier<Integer> industrialRiceReserved = () -> jdbc.sql(
+            "SELECT reserved_quantity FROM inventory_items WHERE id=:id").param("id", industrialRice).query(Integer.class).single();
+
+        // Pickup: the Xiayang rice was chosen, but the resident lives next to the industrial park,
+        // so the same rice is reserved there and the request is scheduled at that point.
+        SupplyRequestView pickup = tx.execute(s -> decisions.approve(requestService.create(resident,
+            request(xiayangRice, 2, FulfillmentMethod.PICKUP)).id(), system.id()));
+        assertThat(pickup.status()).isEqualTo(RequestStatus.SCHEDULED);
+        assertThat(pickup.residentNumber()).isEqualTo(1);
+        assertThat(pickup.category()).isEqualTo("FOOD");
+        assertThat(pickup.assignedServicePointName()).isEqualTo("邻需通·青浦工业园区公益服务点");
+        assertThat(pickup.decisionNote()).startsWith("已批准").contains("09:00–17:00");
+        assertThat(industrialRiceReserved.get()).isEqualTo(2);
+
+        // Not enough stock anywhere: the approval is refused with the reason and nothing changes.
+        SupplyRequestView tooMany = tx.execute(s -> decisions.submitted(requestService.create(resident,
+            request(torch, 100, FulfillmentMethod.PICKUP)).id()));
+        assertThat(tooMany.status()).isEqualTo(RequestStatus.SUBMITTED);
+        assertThat(tooMany.residentNumber()).isEqualTo(2);
+        assertThat(tooMany.decisionNote()).isEqualTo(ApprovalService.PENDING_NOTE);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> tx.execute(s -> decisions.approve(tooMany.id(), system.id())))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class).hasMessageContaining("库存不足").hasMessageContaining("25套");
+        assertThat(requestService.get(tooMany.id()).status()).isEqualTo(RequestStatus.SUBMITTED);
+        assertThat(jdbc.sql("SELECT COUNT(*) FROM reservations WHERE request_id=:id").param("id", tooMany.id())
+            .query(Integer.class).single()).isZero();
+
+        // Not a stocked item: waits for an operator, whose approval reserves nothing.
+        SupplyRequestView other = tx.execute(s -> decisions.submitted(requestService.create(resident,
+            request(null, 1, FulfillmentMethod.DELIVERY)).id()));
+        assertThat(other.status()).isEqualTo(RequestStatus.SUBMITTED);
+        assertThat(other.decisionNote()).isEqualTo(ApprovalService.MANUAL_NOTE);
+        SupplyRequestView otherApproved = tx.execute(s -> decisions.approve(other.id(), system.id()));
+        assertThat(otherApproved.status()).isEqualTo(RequestStatus.APPROVED);
+        assertThat(otherApproved.decisionNote()).isEqualTo(ApprovalService.MANUAL_APPROVED_NOTE);
+        assertThat(other.itemDescription()).isEqualTo("集成测试🍚");
+        // More than 10 km from every service point nothing is served: delivery and pickup are both refused.
+        for (FulfillmentMethod method : FulfillmentMethod.values()) {
+            var farAway = new CreateSupplyRequest("OTHER", "远处需求", 1, Urgency.NORMAL, new BigDecimal("31.3000"),
+                new BigDecimal("121.4000"), null, null, null, null, method, industrialRice);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> tx.execute(s -> requestService.create(resident, farAway)))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class).hasMessageContaining("10 公里");
+        }
+        jdbc.sql("INSERT INTO assistant_conversations (id, user_id) VALUES ('00000000-0000-0000-0000-000000000001', :u)")
+            .param("u", resident).update();
+        jdbc.sql("""
+                INSERT INTO assistant_messages (conversation_id, role, content)
+                VALUES ('00000000-0000-0000-0000-000000000001', 'ASSISTANT', '📍 夏阳服务点 08:30–16:30')
+                """).update();
+
+        // Delivery: approved with stock held, then the nearest cart collects and delivers it.
+        SupplyRequestView delivery = tx.execute(s -> decisions.approve(requestService.create(resident,
+            request(industrialRice, 1, FulfillmentMethod.DELIVERY)).id(), system.id()));
+        assertThat(delivery.status()).isEqualTo(RequestStatus.APPROVED);
+        // A cart nobody drives is never dispatched; each of the three carts gets its own courier.
+        assertThat(trips.dispatchNeeded()).isFalse();
+        var staffRepo = new org.isolatedareas.helphub.auth.UserRepository(jdbc);
+        var couriers = new CourierRouteService(jdbc, trips, staffRepo, audit,
+            new org.isolatedareas.helphub.geo.RoadRouteService(jdbc, json, org.springframework.web.client.RestClient.builder(), "", ""));
+        assertThat(couriers.carts()).extracting(CourierRouteService.CartCourier::code)
+            .containsExactly("QP-CART-001", "QP-CART-002", "QP-CART-003");
+        long[] courierIds = new long[3];
+        for (int index = 0; index < 3; index++) {
+            String account = "kd00" + (index + 1);
+            courierIds[index] = staffRepo.upsertStaff(account, "快递员" + (index + 1), "$2a$10$courier").id();
+            long cartId = couriers.carts().get(index).id();
+            assertThat(tx.execute(s -> couriers.assign(system.id(), cartId, account)).courierAccount()).isEqualTo(account);
+        }
+        assertThat(couriers.routeFor(resident, Instant.now()).assigned()).isFalse();
+        assertThat(trips.dispatchNeeded()).isTrue();
+        CartTripService.PlanOutcome outcome = tx.execute(s -> trips.planTrips(null));
+        assertThat(outcome.assignedRequestIds()).containsExactly(delivery.id());
+        SupplyRequestView scheduled = requestService.get(delivery.id());
+        assertThat(scheduled.status()).isEqualTo(RequestStatus.SCHEDULED);
+        assertThat(scheduled.assignedCartName()).isEqualTo("青浦公益补给车二号");
+        assertThat(scheduled.decisionNote()).contains("预计", "送达");
+        assertThat(trips.dispatchNeeded()).isFalse();
+
+        var tracking = trips.tracking(delivery.id(), resident, Instant.now()).orElseThrow();
+        assertThat(tracking.cartName()).isEqualTo("青浦公益补给车二号");
+        assertThat(tracking.delivered()).isFalse();
+        assertThat(tracking.path()).hasSizeGreaterThanOrEqualTo(2);
+        assertThat(trips.tracking(delivery.id(), resident + 999, Instant.now())).isEmpty();
+        assertThat(trips.motions(Instant.now())).containsKey(scheduled.assignedCartId());
+        assertThat(trips.adminTrips(Instant.now())).singleElement()
+            .satisfies(trip -> assertThat(trip.stops()).extracting(CartTripService.AdminStop::type)
+                .containsExactly("PICKUP", "DROPOFF", "RETURN"));
+
+        // The courier of cart two sees every leg with where to go and what to load or hand over.
+        var route = couriers.routeFor(courierIds[1], Instant.now());
+        assertThat(route.assigned()).isTrue();
+        assertThat(route.cartName()).isEqualTo("青浦公益补给车二号");
+        assertThat(route.legs()).extracting(CourierRouteService.Leg::type).containsExactly("PICKUP", "DROPOFF", "RETURN");
+        assertThat(route.legs()).extracting(CourierRouteService.Leg::state).containsExactly("CURRENT", "UPCOMING", "UPCOMING");
+        var loadLeg = route.legs().get(0);
+        assertThat(loadLeg.fromName()).isEqualTo("邻需通·青浦工业园区公益服务点");
+        assertThat(loadLeg.toName()).isEqualTo("取货：邻需通·青浦工业园区公益服务点");
+        assertThat(loadLeg.details()).singleElement().asString().startsWith("装车：").contains("× 1", "测试居民😀");
+        var dropLeg = route.legs().get(1);
+        assertThat(dropLeg.fromName()).isEqualTo("邻需通·青浦工业园区公益服务点");
+        assertThat(dropLeg.toName()).isEqualTo("送达：测试居民😀（第 4 个申请）");
+        assertThat(dropLeg.toLatitude()).isEqualTo(NEAR_INDUSTRIAL_LAT.doubleValue());
+        assertThat(dropLeg.details()).anyMatch(line -> line.contains("× 1")).anyMatch(line -> line.contains("领取码"));
+        assertThat(route.legs().get(2).fromName()).isEqualTo("测试居民😀（第 4 个申请）");
+        assertThat(route.legs().get(2).toName()).startsWith("返回：");
+        assertThat(couriers.routeFor(courierIds[0], Instant.now()).statusText()).startsWith("暂无配送任务");
+        // Without a map key every leg is the straight line between its ends.
+        assertThat(route.legs()).allSatisfy(leg -> assertThat(leg.path()).hasSize(2));
+        // Couriers see and act on only their own cart; administrators on everything.
+        assertThat(couriers.courierCart(jwt(courierIds[1], "OPERATOR"))).contains(scheduled.assignedCartId());
+        assertThat(couriers.courierCart(jwt(courierIds[1], "ADMIN"))).isEmpty();
+        couriers.requireOwnRequest(jwt(courierIds[1], "OPERATOR"), delivery.id());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> couriers.requireOwnRequest(jwt(courierIds[0], "OPERATOR"), delivery.id()))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class).hasMessageContaining("403");
+        assertThat(requests.findForCart(scheduled.assignedCartId(), 100, 0)).extracting(SupplyRequestView::id).containsExactly(delivery.id());
+
+        long tripId = jdbc.sql("SELECT id FROM cart_trips WHERE status='ACTIVE'").query(Long.class).single();
+        tx.executeWithoutResult(s -> trips.advanceTrip(tripId, Instant.now().plusSeconds(3 * 3600)));
+        SupplyRequestView fulfilled = requestService.get(delivery.id());
+        assertThat(fulfilled.status()).isEqualTo(RequestStatus.FULFILLED);
+        assertThat(fulfilled.decisionNote()).contains("已", "送达");
+        assertThat(jdbc.sql("SELECT status FROM cart_trips WHERE id=:id").param("id", tripId).query(String.class).single())
+            .isEqualTo("COMPLETED");
+        assertThat(jdbc.sql("SELECT status FROM mobile_carts WHERE id=:id").param("id", scheduled.assignedCartId())
+            .query(String.class).single()).isEqualTo("AVAILABLE");
+        assertThat(jdbc.sql("SELECT available_quantity FROM inventory_items WHERE id=:id").param("id", industrialRice)
+            .query(Integer.class).single()).isEqualTo(99);
+        assertThat(industrialRiceReserved.get()).isEqualTo(2);
+        assertThat(trips.tracking(delivery.id(), resident, Instant.now()).orElseThrow().delivered()).isTrue();
+        assertThat(couriers.routeFor(courierIds[1], Instant.now()).legs()).isEmpty();
+
+        // Cancelling the scheduled pickup releases the two bags it was holding.
+        tx.execute(s -> requestService.transition(pickup.id(), system.id(),
+            new RequestService.TransitionRequest(RequestStatus.CANCELLED, null, null)));
+        assertThat(industrialRiceReserved.get()).isZero();
+        assertThat(jdbc.sql("SELECT status FROM reservations WHERE request_id=:id").param("id", pickup.id())
+            .query(String.class).single()).isEqualTo("CANCELLED");
+
+        // Staff verifying the pickup code completes the request; nobody has to mark it done.
+        SupplyRequestView torchPickup = tx.execute(s -> decisions.approve(requestService.create(resident,
+            request(torch, 1, FulfillmentMethod.PICKUP)).id(), system.id()));
+        var torchReservation = reservations.list(resident).stream()
+            .filter(item -> item.requestId() == torchPickup.id()).findFirst().orElseThrow();
+        assertThat(torchReservation.requestNumber()).isEqualTo(torchPickup.residentNumber());
+        var handover = tx.execute(s -> reservations.collectByCode(system.id(), torchReservation.pickupCode()));
+        assertThat(handover.itemName()).isEqualTo("应急手电筒与电池包");
+        assertThat(handover.quantity()).isEqualTo(1);
+        assertThat(handover.requestNumber()).isEqualTo(torchPickup.residentNumber());
+        SupplyRequestView collected = requestService.get(torchPickup.id());
+        assertThat(collected.status()).isEqualTo(RequestStatus.FULFILLED);
+        assertThat(collected.decisionNote()).contains("领取", "已完成");
+
+        // A pickup code left unused past its hold cancels the request and frees the stock.
+        SupplyRequestView forgotten = tx.execute(s -> decisions.approve(requestService.create(resident,
+            request(industrialRice, 1, FulfillmentMethod.PICKUP)).id(), system.id()));
+        assertThat(industrialRiceReserved.get()).isEqualTo(1);
+        jdbc.sql("UPDATE reservations SET expires_at = CURRENT_TIMESTAMP(3) - INTERVAL 1 MINUTE WHERE request_id=:id")
+            .param("id", forgotten.id()).update();
+        tx.executeWithoutResult(s -> reservations.expireHolds());
+        SupplyRequestView lapsed = requestService.get(forgotten.id());
+        assertThat(lapsed.status()).isEqualTo(RequestStatus.CANCELLED);
+        assertThat(lapsed.decisionNote()).contains("48 小时");
+        assertThat(industrialRiceReserved.get()).isZero();
+
+        // A courier may close a delivery before the cart's simulated arrival; the cart then skips the stop.
+        SupplyRequestView courier = tx.execute(s -> decisions.approve(requestService.create(resident,
+            request(industrialRice, 1, FulfillmentMethod.DELIVERY)).id(), system.id()));
+        tx.execute(s -> trips.planTrips(null));
+        assertThat(requestService.get(courier.id()).status()).isEqualTo(RequestStatus.SCHEDULED);
+        tx.executeWithoutResult(s -> trips.markDelivered(courier.id(), system.id()));
+        assertThat(requestService.get(courier.id()).status()).isEqualTo(RequestStatus.FULFILLED);
+        assertThat(trips.tracking(courier.id(), resident, Instant.now()).orElseThrow().delivered()).isTrue();
+        long courierTrip = jdbc.sql("SELECT id FROM cart_trips WHERE status='ACTIVE'").query(Long.class).single();
+        tx.executeWithoutResult(s -> trips.advanceTrip(courierTrip, Instant.now().plusSeconds(3 * 3600)));
+        assertThat(requestService.get(courier.id()).decisionNote()).contains("工作人员", "标记送达");
+        assertThat(industrialRiceReserved.get()).isZero();
+
+        // Booked times: a pickup tomorrow afternoon near Xiayang is fixed to Xiayang's open hours,
+        // and a delivery booked for tomorrow is not dispatched today.
+        var tomorrow = java.time.LocalDate.now(org.isolatedareas.helphub.requests.ServiceWindow.ZONE).plusDays(1);
+        Instant afternoonStart = tomorrow.atTime(13, 0).atZone(org.isolatedareas.helphub.requests.ServiceWindow.ZONE).toInstant();
+        Instant afternoonEnd = tomorrow.atTime(17, 0).atZone(org.isolatedareas.helphub.requests.ServiceWindow.ZONE).toInstant();
+        SupplyRequestView bookedPickup = tx.execute(s -> decisions.approve(requestService.create(resident,
+            new CreateSupplyRequest("OTHER", "预约自取", 1, Urgency.NORMAL, new BigDecimal("31.1520"), new BigDecimal("121.1300"),
+                null, null, afternoonStart, afternoonEnd, FulfillmentMethod.PICKUP, xiayangRice)).id(), system.id()));
+        assertThat(bookedPickup.status()).isEqualTo(RequestStatus.SCHEDULED);
+        assertThat(bookedPickup.assignedServicePointName()).isEqualTo("邻需通·夏阳公益服务点");
+        assertThat(bookedPickup.decisionNote()).contains("13:00–16:30");
+        Instant bookedExpiry = jdbc.sql("SELECT expires_at FROM reservations WHERE request_id=:id").param("id", bookedPickup.id())
+            .query(java.sql.Timestamp.class).single().toInstant();
+        assertThat(bookedExpiry).isAfterOrEqualTo(afternoonEnd.plus(java.time.Duration.ofHours(47)));
+        tx.execute(s -> requestService.transition(bookedPickup.id(), system.id(),
+            new RequestService.TransitionRequest(RequestStatus.CANCELLED, null, null)));
+
+        SupplyRequestView bookedDelivery = tx.execute(s -> decisions.approve(requestService.create(resident,
+            new CreateSupplyRequest("OTHER", "预约配送", 1, Urgency.NORMAL, NEAR_INDUSTRIAL_LAT, NEAR_INDUSTRIAL_LON,
+                null, null, afternoonStart, afternoonEnd, FulfillmentMethod.DELIVERY, industrialRice)).id(), system.id()));
+        assertThat(bookedDelivery.status()).isEqualTo(RequestStatus.APPROVED);
+        assertThat(bookedDelivery.decisionNote()).contains("13:00–17:00", "送达");
+        assertThat(trips.dispatchNeeded()).isFalse();
+        tx.execute(s -> requestService.transition(bookedDelivery.id(), system.id(),
+            new RequestService.TransitionRequest(RequestStatus.CANCELLED, null, null)));
+        assertThat(industrialRiceReserved.get()).isZero();
+
+        // The staff queue holds only open requests, those waiting for a decision first.
+        SupplyRequestView waiting = tx.execute(s -> decisions.submitted(requestService.create(resident,
+            request(industrialRice, 1, FulfillmentMethod.PICKUP)).id()));
+        var queue = requests.findForOperations(null, 100, 0);
+        assertThat(queue).extracting(SupplyRequestView::status)
+            .doesNotContain(RequestStatus.FULFILLED, RequestStatus.REJECTED, RequestStatus.CANCELLED);
+        assertThat(queue).extracting(SupplyRequestView::id).contains(waiting.id());
+        var pendingFirst = queue.stream().map(view -> view.status() == RequestStatus.SUBMITTED || view.status() == RequestStatus.UNDER_REVIEW).toList();
+        assertThat(pendingFirst).isSortedAccordingTo(java.util.Comparator.reverseOrder());
+        tx.execute(s -> requestService.transition(waiting.id(), system.id(),
+            new RequestService.TransitionRequest(RequestStatus.CANCELLED, null, null)));
+
+        // Every resident's own numbering starts at 1.
+        jdbc.sql("INSERT INTO users (wechat_open_id, display_name) VALUES ('it-neighbour', '邻居')").update();
+        long neighbour = jdbc.sql("SELECT id FROM users WHERE wechat_open_id='it-neighbour'").query(Long.class).single();
+        SupplyRequestView first = tx.execute(s -> requestService.create(neighbour, request(null, 1, FulfillmentMethod.PICKUP)));
+        assertThat(first.residentNumber()).isEqualTo(1);
+        assertThat(first.id()).isGreaterThan(1);
+
+        // Staff accounts: stored as BCrypt hashes, resettable, never matching residents.
+        var users = new org.isolatedareas.helphub.auth.UserRepository(jdbc);
+        var courierAccount = users.upsertStaff("kd001", "快递员1", "$2a$10$abcdefghijklmnopqrstuuJ4O3n2m1l0k9j8i7h6g5f4e3d2c1b0a");
+        assertThat(courierAccount.role().name()).isEqualTo("OPERATOR");
+        assertThat(courierAccount.id()).isEqualTo(courierIds[0]);
+        assertThat(users.staffPasswordHash("kd001")).hasValueSatisfying(hash -> assertThat(hash).startsWith("$2a$"));
+        assertThat(users.upsertStaff("kd001", "快递员一号", "$2a$10$reset").displayName()).isEqualTo("快递员一号");
+        assertThat(users.staffPasswordHash("kd001")).contains("$2a$10$reset");
+        assertThat(users.staff()).extracting(org.isolatedareas.helphub.auth.UserAccount::phone).contains("kd001");
+        assertThat(users.staffPasswordHash("it-resident")).isEmpty();
+    }
+
+    private static org.springframework.security.oauth2.jwt.Jwt jwt(long userId, String role) {
+        return org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test").header("alg", "none")
+            .subject(Long.toString(userId)).claim("roles", java.util.List.of(role)).build();
+    }
+
+    private static long itemId(JdbcClient jdbc, String sku) {
+        return jdbc.sql("SELECT id FROM inventory_items WHERE sku=:sku").param("sku", sku).query(Long.class).single();
+    }
+
+    private static CreateSupplyRequest request(Long itemId, int quantity, FulfillmentMethod method) {
+        return new CreateSupplyRequest("OTHER", "集成测试🍚", quantity, Urgency.NORMAL, NEAR_INDUSTRIAL_LAT,
+            NEAR_INDUSTRIAL_LON, null, null, null, null, method, itemId);
+    }
+}

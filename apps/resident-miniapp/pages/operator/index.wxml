@@ -1,0 +1,70 @@
+<view class="page">
+  <view wx:if="{{!token}}" class="card login-card">
+    <text class="title">{{t.loginTitle}}</text>
+    <text class="muted">{{t.loginHint}}</text>
+    <view class="field"><text class="field-label">{{t.account}}</text><input class="input" value="{{phone}}" data-field="phone" bindinput="bind" placeholder="{{t.accountPlaceholder}}" maxlength="32" /></view>
+    <view class="field"><text class="field-label">{{t.password}}</text><input class="input" password value="{{password}}" data-field="password" bindinput="bind" /></view>
+    <button class="btn" bindtap="login" loading="{{loggingIn}}" disabled="{{loggingIn || !password}}">{{t.signIn}}</button>
+  </view>
+
+  <block wx:else>
+    <view class="whoami muted">{{isCourier ? t.courier : t.admin}} {{account}} · v{{releaseId}}</view>
+    <button class="btn secondary" bindtap="load" loading="{{loading}}">{{t.refresh}}</button>
+    <block wx:if="{{myRoute.assigned}}">
+      <view class="section-title"><text>{{t.myRoute}}</text><text>{{myRoute.cartName}}{{t.everyTenSeconds}}</text></view>
+      <view class="card">
+        <view class="row"><text class="title">{{myRoute.cartName}}</text><text class="pill">{{myRoute.statusText}}</text></view>
+        <map wx:if="{{myRoute.legs.length}}" class="trip-map" latitude="{{myRoute.latitude}}" longitude="{{myRoute.longitude}}" scale="12" markers="{{myRouteMarkers}}" polyline="{{myRouteLines}}" include-points="{{myRoutePoints}}" />
+        <text wx:if="{{!myRoute.legs.length}}" class="muted">{{t.noLegs}}</text>
+        <view wx:for="{{myRoute.legs}}" wx:key="order" class="leg {{item.state === 'CURRENT' ? 'leg-current' : ''}} {{item.state === 'DONE' ? 'leg-done' : ''}}">
+          <view class="row"><text class="title">{{t.legBefore}}{{index + 1}}{{t.legAfter}} · {{item.toName}}</text><text class="pill">{{item.stateName}}</text></view>
+          <text class="muted">{{t.fromBefore}}{{item.fromName}}{{t.fromAfter}} · {{t.etaBefore}}{{item.etaText}}{{t.etaAfter}}</text>
+          <text class="muted">{{t.address}}{{item.toAddress}}</text>
+          <view wx:for="{{item.details}}" wx:for-item="line" wx:key="*this" class="muted">· {{line}}</view>
+          <button wx:if="{{item.state !== 'DONE'}}" size="mini" type="{{item.state === 'CURRENT' ? 'primary' : 'default'}}" class="nav-btn" data-index="{{index}}" bindtap="navigate">{{t.navigate}}</button>
+        </view>
+      </view>
+    </block>
+    <block wx:if="{{!isCourier}}">
+    <view class="section-title"><text>{{t.allTrips}}</text><text>{{trips.length}}{{t.onTheRoad}}{{t.everyTenSeconds}}</text></view>
+    <view class="card">
+      <map wx:if="{{trips.length}}" class="trip-map" latitude="{{mapLatitude}}" longitude="{{mapLongitude}}" scale="12" markers="{{tripMarkers}}" polyline="{{tripLines}}" include-points="{{tripLines[0].points}}" />
+      <text wx:if="{{!trips.length}}" class="muted">{{t.noTrips}}</text>
+      <view wx:for="{{trips}}" wx:key="tripId" class="trip">
+        <view class="row"><text class="title">{{item.cartName}}</text><text class="pill">{{item.statusText}}</text></view>
+        <view wx:for="{{item.stops}}" wx:for-item="stop" wx:key="arriveAt" class="muted {{stop.done ? 'stop-done' : ''}}">{{stop.done ? '✓' : '·'}} {{stop.typeName}} {{stop.label}} · {{stop.etaText}}</view>
+      </view>
+    </view>
+    </block>
+    <view class="section-title"><text>{{isCourier ? t.myDeliveries : t.openRequests}}</text><text>{{requests.length}}{{t.countSuffix}}</text></view>
+    <view wx:if="{{isCourier && !requests.length}}" class="card muted">{{t.noDeliveries}}</view>
+    <view wx:for="{{requests}}" wx:key="id" class="card">
+      <view class="row"><text class="title">#{{item.id}} {{item.itemDescription}}</text><text class="pill">{{item.statusName}}</text></view>
+      <text class="muted">{{item.categoryName}} · {{t.quantity}} {{item.quantity}} · {{item.urgencyName}} · {{item.methodName}} · {{item.whenText}}{{item.assignedText ? ' · ' + item.assignedText : ''}}</text>
+      <text class="muted">{{item.residentName}} · {{item.approximateAddress || t.noAddress}}{{item.accessibilityNotes ? ' · ' + item.accessibilityNotes : ''}}</text>
+      <view class="actions">
+        <button wx:if="{{!isCourier && (item.status === 'SUBMITTED' || item.status === 'UNDER_REVIEW')}}" size="mini" type="primary" data-id="{{item.id}}" data-status="APPROVED" bindtap="transition">{{t.approve}}</button>
+        <button wx:if="{{!isCourier && (item.status === 'SUBMITTED' || item.status === 'UNDER_REVIEW')}}" size="mini" data-id="{{item.id}}" data-status="REJECTED" bindtap="transition">{{t.reject}}</button>
+        <button wx:if="{{item.status === 'APPROVED' && item.fulfillmentMethod === 'PICKUP'}}" size="mini" data-id="{{item.id}}" data-status="SCHEDULED" bindtap="transition">{{t.assignPoint}}</button>
+        <text wx:if="{{item.status === 'APPROVED' && item.fulfillmentMethod === 'DELIVERY'}}" class="muted">{{t.autoDispatch}}</text>
+        <button wx:if="{{item.status === 'SCHEDULED' && item.fulfillmentMethod === 'DELIVERY'}}" size="mini" type="primary" data-id="{{item.id}}" bindtap="markDelivered">{{t.markDelivered}}</button>
+        <button wx:if="{{item.status === 'SCHEDULED' && item.fulfillmentMethod === 'PICKUP'}}" size="mini" type="primary" data-id="{{item.id}}" data-status="FULFILLED" bindtap="transition">{{t.markCollected}}</button>
+        <button wx:if="{{!isCourier && (item.status === 'SUBMITTED' || item.status === 'APPROVED' || item.status === 'SCHEDULED')}}" size="mini" data-id="{{item.id}}" data-status="CANCELLED" bindtap="transition">{{t.cancel}}</button>
+      </view>
+    </view>
+
+    <view class="section-title"><text>{{t.verifyTitle}}</text><text>{{t.verifyHint}}</text></view>
+    <view class="card">
+      <view class="field"><text class="field-label">{{t.codeLabel}}</text><input class="input" type="number" maxlength="6" value="{{pickupCode}}" data-field="pickupCode" bindinput="bind" /></view>
+      <button class="btn" bindtap="collect">{{t.verify}}</button>
+    </view>
+
+    <block wx:if="{{!isCourier}}">
+    <view class="section-title"><text>{{t.stockTitle}}</text><text>{{inventory.length}}{{t.itemsSuffix}}</text></view>
+    <view wx:for="{{inventory}}" wx:key="id" class="card inventory-row">
+      <view><text class="title">{{item.name}}</text><text class="muted">{{item.freeText}} · {{item.servicePointName}}</text></view>
+      <view class="actions compact"><button size="mini" data-id="{{item.id}}" data-delta="-1" bindtap="adjust">-1</button><button size="mini" data-id="{{item.id}}" data-delta="10" bindtap="adjust">+10</button></view>
+    </view>
+    </block>
+  </block>
+</view>

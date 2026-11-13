@@ -1,0 +1,11 @@
+<view class="page">
+  <view wx:if="{{submitted}}" class="success"><text>✓</text><text class="title">{{t.thanks}}</text><text class="muted">{{t.thanksHint}}</text><button class="btn" bindtap="backToRequests">{{t.back}}</button></view>
+  <view wx:else class="card form-card">
+    <text class="heading">{{t.heading}}</text><text wx:if="{{requestNumber}}" class="muted">{{t.request}} #{{requestNumber}}</text>
+    <view class="stars"><text wx:for="{{stars}}" wx:key="*this" class="{{item <= rating ? 'active' : ''}}" data-value="{{item}}" bindtap="rate">★</text></view>
+    <view class="field"><text class="field-label">{{t.previous}}</text><input class="input" type="number" value="{{previousTravelMinutes}}" data-field="previousTravelMinutes" bindinput="bindText" /></view>
+    <view class="field"><text class="field-label">{{t.current}}</text><input class="input" type="number" value="{{currentTravelMinutes}}" data-field="currentTravelMinutes" bindinput="bindText" /></view>
+    <view class="field"><text class="field-label">{{t.comments}}</text><textarea class="textarea" maxlength="1000" value="{{comments}}" data-field="comments" bindinput="bindText" /></view>
+    <button class="btn" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">{{t.submit}}</button>
+  </view>
+</view>

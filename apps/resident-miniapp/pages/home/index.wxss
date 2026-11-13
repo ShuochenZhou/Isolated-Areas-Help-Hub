@@ -1,0 +1,44 @@
+.hero-actions { display: flex; gap: 18rpx; margin-top: 30rpx; }
+.hero-btn { flex: 1; height: 82rpx; line-height: 82rpx; border: 0; border-radius: 22rpx; color: #1c5949; background: #fff7e6; font-size: 27rpx; font-weight: 650; }
+.hero-btn::after { border: 0; }
+/* Two classes outrank the base library's 8px top and bottom padding, which pushed the label below
+   the middle of the fixed-height button. */
+.hero-actions .hero-btn { margin: 0; padding: 0 16rpx; }
+.hero-btn.ghost { color: #fff; background: rgba(255,255,255,.14); }
+.point-card { position: relative; }
+.point-card .title { margin-right: 14rpx; }
+.distance { margin-top: 10rpx; color: #c05d40; font-size: 25rpx; font-weight: 600; }
+.mini-btn { margin: 0; padding: 0 22rpx; border-radius: 18rpx; color: #fff; background: #246b58; font-size: 24rpx; }
+/* Two classes outrank the base library's "button:not([size=mini])" (184px wide, auto side margins),
+   which otherwise stretched the button into a thin bar, or pushed it into the middle of the row. */
+.row .mini-btn { flex: 0 0 auto; width: auto; height: 60rpx; margin: 0; padding: 0 30rpx; line-height: 60rpx; }
+.mini-btn::after { border: 0; }
+.inventory-scroll { width: 100%; white-space: nowrap; }
+.inventory-card { display: inline-flex; flex-direction: column; width: 250rpx; margin-right: 18rpx; padding: 25rpx; box-sizing: border-box; border-radius: 26rpx; background: #fffdf8; box-shadow: 0 8rpx 25rpx rgba(48,68,60,.06); white-space: normal; vertical-align: top; }
+.inventory-category { color: #c05d40; font-size: 21rpx; letter-spacing: 2rpx; }
+.inventory-card .title { min-height: 72rpx; margin: 12rpx 0 18rpx; line-height: 36rpx; overflow-wrap: anywhere; }
+.stock { color: #246b58; font-size: 44rpx; font-weight: 700; }
+.compact-empty { padding: 34rpx 20rpx; }
+.stock-line { display: flex; align-items: baseline; }
+.point-list { margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx solid #eee6d8; }
+.point-stock { display: flex; justify-content: space-between; color: #52655e; font-size: 22rpx; line-height: 36rpx; }
+.apply-link { margin-top: 12rpx; color: #246b58; font-size: 22rpx; font-weight: 600; }
+/* Language picker shown on every launch. */
+.language-mask { position: fixed; z-index: 50; inset: 0; display: flex; align-items: center; justify-content: center; padding: 48rpx; box-sizing: border-box; background: rgba(19,39,32,.55); }
+.language-card { width: 100%; padding: 56rpx 44rpx 44rpx; box-sizing: border-box; border-radius: 36rpx; background: #fffdf8; box-shadow: 0 24rpx 60rpx rgba(19,39,32,.25); text-align: center; }
+.language-title { display: block; color: #203b32; font-size: 44rpx; font-weight: 700; }
+.language-subtitle { display: block; margin: 10rpx 0 40rpx; color: #7b8983; font-size: 26rpx; }
+.language-remember { display: flex; align-items: center; justify-content: center; min-height: 96rpx; margin-bottom: 20rpx; padding: 14rpx 24rpx; box-sizing: border-box; border-radius: 26rpx; background: #f6f1e7; text-align: left; }
+.language-check { display: flex; flex: none; align-items: center; justify-content: center; width: 36rpx; height: 36rpx; margin-right: 18rpx; box-sizing: border-box; border: 3rpx solid #9fb3aa; border-radius: 10rpx; background: #fff; color: #fff; font-size: 24rpx; font-weight: 700; }
+.language-check.checked { border-color: #246b58; background: #246b58; }
+.language-remember-text { display: flex; flex-direction: column; min-width: 0; }
+.language-remember-main { color: #203b32; font-size: 26rpx; line-height: 1.4; }
+.language-remember-sub { color: #7b8983; font-size: 22rpx; line-height: 1.4; }
+.language-option { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 128rpx; margin-bottom: 24rpx; border: 2rpx solid #d9e6df; border-radius: 26rpx; background: #eef6f2; }
+.language-option-hover { border-color: #246b58; background: #dcebe4; }
+.language-main { color: #246b58; font-size: 38rpx; font-weight: 700; }
+.language-sub { margin-top: 4rpx; color: #5f7069; font-size: 24rpx; }
+.language-note { display: block; margin-top: 12rpx; color: #7b8983; font-size: 23rpx; line-height: 1.5; }
+.language-note.secondary { margin-top: 2rpx; color: #9aa59f; font-size: 21rpx; }
+/* Status labels stay on one line; a long request title wraps beside them instead. */
+.status-pill { flex: none; white-space: nowrap; }

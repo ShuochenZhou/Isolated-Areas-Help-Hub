@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="section-title top"><text>{{t.title}}</text><text>{{t.pullToRefresh}}</text></view>
+  <view wx:if="{{loading && !rows.length}}" class="state-card"><text><text class="loading-dot"></text>{{t.loading}}</text></view>
+  <view wx:if="{{error && !loading}}" class="state-card error"><text>{{error}}</text><button class="retry-btn" bindtap="load">{{t.reload}}</button></view>
+  <view wx:for="{{rows}}" wx:key="id" class="card request-card">
+    <view class="row"><view><text class="request-id">{{t.request}} #{{item.residentNumber}}</text><text class="title">{{item.itemDescription}}</text></view><text class="pill status-pill {{item.urgency === 'CRITICAL' ? 'orange' : ''}}">{{item.statusName}}</text></view>
+    <view class="meta"><text>{{item.categoryName}}</text><text>{{t.quantity}} {{item.quantity}}</text><text>{{item.urgencyName}}</text><text>{{item.methodName}}</text><text>{{item.whenText}}</text></view>
+    <view wx:if="{{item.assignedText}}" class="muted">{{item.assignedText}}</view>
+    <view wx:if="{{item.decisionNote}}" class="decision {{item.status === 'REJECTED' ? 'rejected' : ''}}">{{item.decisionNote}}</view>
+    <view class="timeline"><view wx:for="{{steps}}" wx:for-item="step" wx:key="*this" class="step {{step <= item.stage ? 'done' : ''}}"><view class="step-dot"></view><view class="step-line"></view></view></view>
+    <view class="muted">{{item.approximateAddress || t.noAddress}} · {{item.createdText}}</view>
+    <button wx:if="{{!item.automatic && (item.status === 'APPROVED' || item.status === 'SCHEDULED')}}" class="action" bindtap="reserve" data-id="{{item.id}}">{{t.reserve}}</button>
+    <button wx:if="{{item.automatic && (item.status === 'APPROVED' || item.status === 'SCHEDULED')}}" class="action" bindtap="codes">{{t.codes}}</button>
+    <button wx:if="{{item.trackable}}" class="action" bindtap="track" data-id="{{item.id}}">{{t.track}}</button>
+    <button wx:if="{{item.status === 'SUBMITTED' || item.status === 'UNDER_REVIEW'}}" class="action ghost" bindtap="cancelRequest" data-id="{{item.id}}" data-number="{{item.residentNumber}}" disabled="{{cancelling === item.id}}">{{t.cancelRequest}}</button>
+    <view wx:if="{{item.status === 'FULFILLED' || item.status === 'REJECTED'}}" class="action-row">
+      <button wx:if="{{item.status === 'FULFILLED' && item.feedbackGiven}}" class="action" disabled="{{true}}">{{t.feedbackGiven}}</button>
+      <button wx:if="{{item.status === 'FULFILLED' && !item.feedbackGiven}}" class="action" bindtap="feedback" data-id="{{item.id}}" data-number="{{item.residentNumber}}">{{t.feedback}}</button>
+      <button class="action ghost" bindtap="appeal" data-number="{{item.residentNumber}}">{{item.status === 'FULFILLED' ? t.appealMissing : t.appealQuestion}}</button>
+    </view>
+  </view>
+  <view wx:if="{{!rows.length && !loading}}" class="empty"><text>{{t.empty}}</text><text class="empty-line">{{t.emptyHint}}</text></view>
+</view>

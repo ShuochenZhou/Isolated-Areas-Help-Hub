@@ -1,0 +1,12 @@
+.receipt { margin: 8rpx 0 34rpx; padding: 38rpx; border-radius: 34rpx; text-align: center; background: linear-gradient(145deg,#fff1d5,#f9dfbd); box-shadow: 0 14rpx 36rpx rgba(121,84,51,.1); }
+.receipt .eyebrow { color: #956342; }
+.receipt > text { display: block; }
+.code { margin: 16rpx 0; color: #284f43; font-family: monospace; font-size: 72rpx; font-weight: 800; letter-spacing: 14rpx; }
+.receipt .muted { margin-top: 12rpx; }
+.picker { padding: 22rpx; border: 1rpx solid #dce3df; border-radius: 20rpx; background: #fff; }
+.pickup-line { margin-top: 18rpx; padding: 18rpx; border-radius: 18rpx; color: #246b58; background: #edf7f2; font-weight: 700; text-align: center; }
+/* Only the digits are monospaced, so the label keeps the page font. */
+.pickup-digits { font-family: Menlo, Consolas, monospace; font-size: 34rpx; letter-spacing: 4rpx; }
+.copy-hint { font-weight: 400; font-size: 24rpx; }
+.payment-notice { margin: 0 0 20rpx; padding: 20rpx 22rpx; border-radius: 20rpx; color: #765d50; background: #f6eadc; font-size: 23rpx; line-height: 1.55; }
+.picker { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

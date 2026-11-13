@@ -1,0 +1,26 @@
+<view class="page">
+  <view wx:if="{{receipt}}" class="receipt">
+    <text class="eyebrow">{{receipt.pickupCode ? 'PICKUP CODE' : 'PAYMENT'}}</text><text wx:if="{{receipt.pickupCode}}" class="code" bindtap="copyCode" data-code="{{receipt.pickupCode}}">{{receipt.pickupCode}}</text>
+    <text class="title">{{t.request}} #{{receipt.requestNumber}} · {{receipt.itemName}} × {{receipt.quantity}}</text><text class="muted">{{receipt.pickupCode ? receipt.handover : t.paymentReceipt}} {{t.validUntil}} {{receipt.expiresText}}{{t.releaseAfter}}</text>
+  </view>
+  <view wx:if="{{loading && !requests.length}}" class="state-card"><text><text class="loading-dot"></text>{{t.loading}}</text></view>
+  <view wx:if="{{error && !loading}}" class="state-card error"><text>{{error}}</text><button class="retry-btn" bindtap="load">{{t.reload}}</button></view>
+  <view wx:if="{{paidItemsHidden}}" class="payment-notice">{{t.paidHidden}}</view>
+  <view class="section-title"><text>{{t.myCodes}}</text><text>{{reservations.length}}{{t.countSuffix}}</text></view>
+  <view wx:for="{{reservations}}" wx:key="reservationId" class="card">
+    <view class="row"><text class="title">{{t.request}} #{{item.requestNumber}} · {{item.itemName}} × {{item.quantity}}</text><text class="pill">{{item.statusName}}</text></view>
+    <view class="muted status-line">{{t.from}} {{item.servicePointName}} · {{item.servicePointAddress}}</view>
+    <view wx:if="{{item.active}}" class="muted">{{item.handover}}</view><view class="muted">{{item.amountText}} · {{t.validUntil}} {{item.expiresText}}</view>
+    <button wx:if="{{paymentsEnabled && item.amountFen > 0 && (!item.paymentStatus || item.paymentStatus === 'CREATED' || item.paymentStatus === 'PREPAY')}}" class="mini-btn" data-id="{{item.reservationId}}" bindtap="payExisting" loading="{{paying}}" disabled="{{paying}}">{{t.pay}}</button>
+    <button wx:if="{{item.paymentStatus === 'SUCCESS' && item.status !== 'COLLECTED'}}" class="mini-btn ghost" data-id="{{item.paymentId}}" bindtap="refund">{{t.refund}}</button>
+    <view wx:if="{{item.pickupCode && item.active}}" class="pickup-line" bindtap="copyCode" data-code="{{item.pickupCode}}"><text>{{t.codePrefix}}</text><text class="pickup-digits">{{item.pickupCode}}</text><text class="copy-hint">{{t.copyHint}}</text></view>
+  </view>
+  <view wx:if="{{!reservations.length && !loading && !error}}" class="empty">{{t.empty}}</view>
+  <view wx:if="{{requests.length}}" class="section-title"><text>{{t.manualTitle}}</text><text>{{requests.length}}{{t.pendingSuffix}}</text></view>
+  <view wx:if="{{requests.length}}" class="card form-card">
+    <view class="field"><text class="field-label">{{t.requestLabel}}</text><picker range="{{requests}}" range-key="label" value="{{requestIndex}}" bindchange="requestChange"><view class="picker">{{requests.length ? requests[requestIndex].label : t.noApproved}}</view></picker></view>
+    <view class="field"><text class="field-label">{{t.itemLabel}}</text><picker range="{{inventory}}" range-key="label" value="{{itemIndex}}" bindchange="itemChange"><view class="picker">{{inventory.length ? inventory[itemIndex].label : (requests.length ? t.noStock : t.waitApproval)}}</view></picker></view>
+    <view class="field"><text class="field-label">{{t.quantityLabel}}</text><input class="input" type="number" value="{{quantity}}" bindinput="quantityChange" /></view>
+    <button class="btn" bindtap="reserve" loading="{{reserving}}" disabled="{{reserving || paying || !requests.length || !inventory.length}}">{{t.generate}}</button>
+  </view>
+</view>

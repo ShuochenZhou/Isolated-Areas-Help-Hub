@@ -1,0 +1,19 @@
+.assistant-page { min-height: 100vh; padding: 20rpx 24rpx 170rpx; box-sizing: border-box; }
+.safety { margin-bottom: 24rpx; padding: 18rpx 22rpx; border-radius: 18rpx; color: #6f625c; background: #f3e9d8; font-size: 22rpx; text-align: center; }
+.message { display: flex; margin: 20rpx 0; }
+.message.user { justify-content: flex-end; }
+.bubble { max-width: 76%; padding: 22rpx 25rpx; border-radius: 26rpx 26rpx 26rpx 8rpx; background: #fffdf8; font-size: 27rpx; line-height: 1.65; box-shadow: 0 6rpx 20rpx rgba(48,68,60,.05); }
+.user .bubble { color: #fff; background: #286a59; border-radius: 26rpx 26rpx 8rpx 26rpx; }
+.tool-note { margin-top: 12rpx; color: #789087; font-size: 21rpx; }
+.typing { color: #778781; }
+.quick-list { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 30rpx 0; }
+.quick-list text { padding: 16rpx 20rpx; border-radius: 18rpx; color: #246b58; background: #e4f1eb; font-size: 24rpx; }
+.composer { position: fixed; z-index: 5; left: 0; right: 0; bottom: 0; display: flex; gap: 16rpx; padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid #e8e8e2; background: rgba(255,253,248,.97); }
+.composer input { flex: 1; height: 78rpx; padding: 0 22rpx; border-radius: 22rpx; background: #f0f2ed; }
+/* The base library adds horizontal padding to buttons, so a fixed width can clip localized labels.
+   Size the button from its content instead. */
+.composer button { flex: 0 0 auto; width: auto; min-width: 136rpx; height: 78rpx; margin: 0; padding: 0 30rpx; line-height: 78rpx; border: 0; border-radius: 22rpx; color: #fff; background: #246b58; font-size: 26rpx; white-space: nowrap; }
+.composer button::after { border: 0; }
+/* Disabled (empty input) the base library paints it light grey on white, which read as a missing
+   button; keep the brand colour and just dim it. */
+.assistant-page .composer button[disabled] { color: #fff; background: #246b58; opacity: .45; }

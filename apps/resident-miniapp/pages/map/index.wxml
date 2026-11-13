@@ -1,0 +1,13 @@
+<view class="map-page">
+  <map id="serviceMap" class="map" latitude="{{latitude}}" longitude="{{longitude}}" markers="{{markers}}" polyline="{{polyline}}" bindmarkertap="markerTap" />
+  <view class="legend"><view class="legend-item"><view class="dot green"></view><text>{{t.pointLegend}}</text></view><view class="legend-item"><view class="dot orange"></view><text>{{t.cartLegend}}</text></view><view class="legend-item"><view class="dot blue"></view><text>{{t.meLegend}}</text></view></view>
+  <view wx:if="{{loading}}" class="map-state"><text class="loading-dot"></text>{{t.loading}}</view>
+  <view wx:if="{{tracking}}" class="map-state tracking"><text class="title">{{tracking.cartName}}</text><text>{{tracking.text}}</text><button bindtap="stopTracking">{{t.showAll}}</button></view>
+  <view wx:if="{{!loading && !error && !tracking}}" class="map-state place"><text wx:if="{{!t.placeOwnLine}}">{{t.placePrefix}}{{placeLabel}}{{placeConfirmed ? '' : t.defaultSuffix}}</text><view wx:else>{{t.placePrefix}}{{placeLabel}}{{placeConfirmed ? '' : t.defaultSuffix}}</view><button bindtap="editPlace">{{placeConfirmed ? t.changePlace : t.setPlace}}</button></view>
+  <view wx:if="{{error && !loading}}" class="map-state error"><text>{{error}}</text><button bindtap="load">{{t.reload}}</button></view>
+  <view wx:if="{{!loading && !error && !points.length && !carts.length}}" class="map-state empty-state"><text>{{t.empty}}</text></view>
+  <view wx:if="{{selected}}" class="sheet">
+    <view class="row"><view><text class="title">{{selected.name}}</text><view class="muted">{{selected.detail}}</view></view><text class="pill">{{selected.statusName}}</text></view>
+    <button class="btn" bindtap="openNavigation">{{t.navigate}}</button>
+  </view>
+</view>

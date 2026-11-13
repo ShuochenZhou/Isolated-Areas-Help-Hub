@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_ADDRESS}/${MYSQL_DATABASE:springboot_demo}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+server:
+  port: 8080
+
+app:
+  inventory:
+    daily-restock: ${DAILY_RESTOCK_ENABLED:true}
+  pickup-code-secret: ${PICKUP_CODE_SECRET}
+  cors:
+    # The web version of the resident app (resident-web) calls the API from its own site.
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:https://servicewechat.com,https://qingpu-help-hub.vercel.app}
+  auth:
+    jwt-secret: ${JWT_SECRET}
+    dev-login-enabled: false
+    # The web version of the resident app signs in here; WEB_LOGIN_ENABLED=false closes that channel.
+    web-login-enabled: ${WEB_LOGIN_ENABLED:true}
+
+logging:
+  level:
+    root: INFO

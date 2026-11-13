@@ -1,0 +1,91 @@
+/* WeChat's own styles for its built-in elements, as the base library (3.17.2, "style": "v2")
+   ships them. They load before app.wxss and the page styles, which override them as in WeChat. */
+
+wx-page { display: block; min-height: 100%; }
+wx-view { display: block; }
+wx-text { cursor: default; white-space: pre-line; }
+wx-text[selectable], wx-text[user-select] { cursor: auto; user-select: text; -webkit-user-select: text; }
+wx-label, wx-cover-view { display: block; }
+[hidden] { display: none !important; }
+
+/* <button>: base styles, then the v2 overrides. */
+wx-button { position: relative; display: block; margin-left: auto; margin-right: auto; padding-left: 14px; padding-right: 14px; box-sizing: border-box; font-size: 18px; text-align: center; text-decoration: none; line-height: 2.55555556; border-radius: 5px; -webkit-tap-highlight-color: transparent; overflow: hidden; color: #000; background-color: #f8f8f8; cursor: pointer; user-select: none; -webkit-user-select: none; outline: none; }
+wx-button:focus-visible { box-shadow: 0 0 0 2px rgba(36, 107, 88, .45); }
+wx-button::after { content: " "; width: 200%; height: 200%; position: absolute; top: 0; left: 0; border: 1px solid rgba(0, 0, 0, .2); transform: scale(.5); transform-origin: 0 0; box-sizing: border-box; border-radius: 10px; }
+wx-button[type=default] { background-color: #f8f8f8; color: #000; }
+wx-button[type=primary] { background-color: #1aad19; color: #fff; }
+wx-button[type=warn] { background-color: #e64340; color: #fff; }
+wx-button[disabled]:not([type]), wx-button[disabled][type=default] { background-color: #f7f7f7; color: rgba(0, 0, 0, .3); }
+wx-button[disabled][type=primary] { background-color: #9ed99d; }
+wx-button[disabled][type=warn] { background-color: #ec8b89; }
+wx-button[type=primary][plain] { background-color: transparent; border: 1px solid #1aad19; color: #1aad19; }
+wx-button[type=primary][plain][disabled] { border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .2); }
+wx-button[type=primary][plain]::after, wx-button[type=default][plain]::after, wx-button[plain]::after, wx-button[type=warn][plain]::after { border-width: 0; }
+wx-button[type=default][plain][disabled], wx-button[plain][disabled] { border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .2); }
+wx-button[plain] { background-color: transparent; border: 1px solid #353535; color: #353535; }
+wx-button[type=warn][plain] { background-color: transparent; border: 1px solid #e64340; color: #e64340; }
+wx-button[type=warn][plain][disabled] { border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .2); }
+wx-button[size=mini] { display: inline-block; font-size: 13px; line-height: 2.3; padding: 0 1.34em; }
+wx-button[loading][type=primary] { background-color: #179b16; color: rgba(255, 255, 255, .6); }
+wx-button[loading][type=default] { background-color: #dedede; color: rgba(0, 0, 0, .6); }
+wx-button[loading][type=warn] { background-color: #ce3c39; color: rgba(255, 255, 255, .6); }
+wx-button[loading]::before { content: " "; display: inline-block; width: 18px; height: 18px; margin: -.2em .34em 0 0; vertical-align: middle; background: transparent url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23909090'%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='1'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.92' transform='rotate(30 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.84' transform='rotate(60 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.76' transform='rotate(90 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.68' transform='rotate(120 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.6' transform='rotate(150 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.52' transform='rotate(180 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.44' transform='rotate(210 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.36' transform='rotate(240 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.28' transform='rotate(270 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.2' transform='rotate(300 50 50)'/%3E%3Crect x='46.5' y='8' width='7' height='22' rx='3.5' opacity='.14' transform='rotate(330 50 50)'/%3E%3C/g%3E%3C/svg%3E") no-repeat; background-size: 100%; animation: wx-button-loading 1s steps(12) infinite; }
+wx-button[loading][type=primary]::before, wx-button[loading][type=warn]::before { filter: brightness(2.2); }
+@keyframes wx-button-loading { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.button-hover { background-color: #dedede; color: rgba(0, 0, 0, .6); }
+.button-hover[plain] { background-color: transparent; border-color: rgba(53, 53, 53, .6); color: rgba(53, 53, 53, .6); }
+.button-hover[type=primary][plain] { background-color: transparent; border-color: rgba(26, 173, 25, .6); color: rgba(26, 173, 25, .6); }
+.button-hover[type=default] { background-color: #dedede; color: rgba(0, 0, 0, .6); }
+.button-hover[type=warn][plain] { background-color: transparent; border-color: rgba(230, 67, 64, .6); color: rgba(230, 67, 64, .6); }
+/* style v2 */
+wx-button { border-radius: 4px; font-size: 17px; font-weight: 700; line-height: 1.41176471; padding: 8px 24px; }
+wx-button:not([size=mini]) { margin-left: auto; margin-right: auto; width: 184px; }
+wx-button::after { display: none; }
+wx-button[type=primary] { background-color: #07c160; }
+wx-button[type=primary][loading=true] { background-color: #06ad56; }
+wx-button[loading][type=primary] { background-color: #06ad56; color: #fff; }
+wx-button[disabled][type=primary] { background-color: #fafafa; color: rgba(0, 0, 0, .18); }
+wx-button[type=default] { background-color: #f2f2f2; color: #06ae56; }
+wx-button[disabled]:not([type]), wx-button[disabled][type=default] { background-color: #fafafa; color: rgba(0, 0, 0, .18); }
+wx-button[type=warn] { background-color: #f2f2f2; color: #fa5151; }
+wx-button[loading][type=warn] { background-color: #d9d9d9; color: #fa5151; }
+wx-button[disabled][type=warn] { background-color: #fafafa; color: rgba(0, 0, 0, .18); }
+wx-button[type=primary][plain] { border-color: #179c16; color: #06ae56; }
+wx-button[type=primary][plain][disabled] { background-color: transparent; border-color: rgba(0, 0, 0, .2); color: rgba(0, 0, 0, .2); }
+wx-button[type=default][plain] { background-color: transparent; border: 1px solid #353535; color: #353535; }
+wx-button[size=mini] { font-size: 16px; line-height: 2; padding: 0 .75em; width: auto; }
+.button-hover[type=primary] { background-color: #06ad56; color: #fff; }
+.button-hover[type=default] { background-color: #d9d9d9; color: #06ae56; }
+.button-hover[type=warn] { background-color: #d9d9d9; color: #fa5151; }
+.button-hover[type=primary][plain], .button-hover[type=default][plain] { background-color: rgba(0, 0, 0, .1); }
+
+/* <input> */
+wx-input { cursor: auto; display: block; height: 1.4rem; min-height: 1.4rem; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+wx-input .wx-input-field { -webkit-tap-highlight-color: transparent; background: transparent; border: none; color: inherit; display: block; font: inherit; height: 100%; min-height: 100%; margin: 0; outline: none; padding: 0; text-align: inherit; width: 100%; box-sizing: border-box; letter-spacing: inherit; }
+wx-input .wx-input-field::placeholder, wx-textarea .wx-textarea-field::placeholder { color: #9b9b9b; opacity: 1; }
+wx-input[disabled] { color: rgba(0, 0, 0, .45); }
+
+/* <textarea> */
+wx-textarea { cursor: auto; display: block; height: 150px; overflow: hidden; position: relative; width: 300px; }
+wx-textarea .wx-textarea-box { position: relative; width: 100%; height: 100%; }
+wx-textarea .wx-textarea-field { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; border: none; font: inherit; line-height: 1.2; outline: none; padding: 0; margin: 0; resize: none; color: inherit; letter-spacing: inherit; }
+
+/* <scroll-view> */
+wx-scroll-view { display: block; width: 100%; }
+wx-scroll-view .wx-scroll-view { -webkit-overflow-scrolling: touch; height: 100%; max-height: inherit; position: relative; width: 100%; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(32, 59, 50, .18) transparent; }
+wx-scroll-view .wx-scroll-view-x { scrollbar-width: none; }
+wx-scroll-view .wx-scroll-view-x::-webkit-scrollbar, .wx-scroll-view-hide-scrollbar::-webkit-scrollbar { display: none; }
+.wx-scroll-view-hide-scrollbar { scrollbar-width: none; }
+
+/* <picker>, <map>, <image>, <icon>, <navigator> */
+wx-picker { display: block; cursor: pointer; }
+/* Its own stacking context: the map's layers never cover the page elements placed over it. */
+wx-map { display: block; height: 150px; position: relative; width: 300px; overflow: hidden; isolation: isolate; z-index: 0; }
+wx-map .wx-map-container { position: absolute; inset: 0; border-radius: inherit; background: #f2efe6; }
+wx-map .wx-map-slot { height: 100%; left: 0; overflow: hidden; pointer-events: none; position: absolute; top: 0; width: 100%; z-index: 500; }
+wx-map .wx-map-slot * { pointer-events: auto; }
+wx-image { display: inline-block; height: 240px; overflow: hidden; width: 320px; }
+wx-image > img { display: block; -webkit-touch-callout: none; user-select: none; }
+wx-icon { display: inline-block; vertical-align: middle; line-height: 0; }
+wx-navigator { display: block; cursor: pointer; }
+.navigator-hover { background-color: rgba(0, 0, 0, .1); opacity: .7; }

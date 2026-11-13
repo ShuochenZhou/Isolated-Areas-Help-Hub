@@ -1,0 +1,7 @@
+.heading { display: block; margin-bottom: 10rpx; font-size: 38rpx; font-weight: 700; }
+.stars { display: flex; justify-content: space-between; margin: 38rpx 20rpx; }
+.stars text { color: #d9ddd9; font-size: 64rpx; }
+.stars text.active { color: #e5a53e; }
+.success { margin-top: 160rpx; padding: 50rpx; text-align: center; }
+.success > text { display: block; margin-bottom: 20rpx; }
+.success > text:first-child { display: flex; align-items: center; justify-content: center; width: 110rpx; height: 110rpx; margin: 0 auto 32rpx; border-radius: 50%; color: #fff; background: #246b58; font-size: 60rpx; }

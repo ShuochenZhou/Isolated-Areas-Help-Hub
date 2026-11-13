@@ -1,0 +1,10 @@
+{
+  "name": "邻需通 Help Hub",
+  "short_name": "邻需通",
+  "description": "Free daily essentials and supply carts for residents of Qingpu, Shanghai.",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#f6f1e7",
+  "theme_color": "#f7f3e9",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

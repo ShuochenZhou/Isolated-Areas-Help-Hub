@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="intro"><text class="eyebrow">NEEDS INTAKE</text><text class="heading">{{t.heading}}</text><text class="muted">{{t.intro}}</text></view>
+  <view class="form-card">
+    <view class="field"><text class="field-label">{{t.product}}</text><view class="picker" bindtap="openSheet"><text>{{loadingProducts ? t.loadingStock : (productIndex < products.length ? products[productIndex].name : otherLabel)}}</text><text>⌄</text></view><view wx:if="{{productIndex < products.length}}" class="point-breakdown">{{t.pointStock}}{{products[productIndex].pointsText}}</view><view class="location-help"><text>{{productIndex < products.length ? t.productHelp : t.otherHelp}}</text></view></view>
+    <view wx:if="{{productIndex >= products.length}}" class="field"><text class="field-label">{{t.category}}</text><picker mode="selector" range="{{categoryNames}}" value="{{categoryIndex}}" bindchange="categoryChange"><view class="picker">{{categoryNames[categoryIndex]}}<text>⌄</text></view></picker></view>
+    <view class="field"><text class="field-label">{{productIndex < products.length ? t.notes : t.need}}</text><textarea class="textarea compact" maxlength="400" placeholder="{{productIndex < products.length ? t.notesPlaceholder : t.needPlaceholder}}" value="{{itemDescription}}" data-field="itemDescription" bindinput="bindText" /></view>
+    <view class="field two"><view><text class="field-label">{{t.quantity}}</text><input class="input" type="number" maxlength="3" placeholder="1–100" value="{{quantity}}" bindinput="quantityChange" /></view><view><text class="field-label">{{t.urgency}}</text><picker range="{{urgencyNames}}" value="{{urgencyIndex}}" bindchange="urgencyChange"><view class="picker">{{urgencyNames[urgencyIndex]}}<text>⌄</text></view></picker></view></view>
+    <view class="field"><text class="field-label">{{t.method}}</text><view class="method-row"><view class="method {{methodIndex === 0 ? 'active' : ''}}" data-index="0" bindtap="methodChange"><text class="method-title">{{t.pickup}}</text><text class="method-copy">{{t.pickupCopy}}</text><text wx:if="{{pickupHoursText}}" class="method-hours">{{pickupHoursText}}</text></view><view class="method {{methodIndex === 1 ? 'active' : ''}}" data-index="1" bindtap="methodChange"><text class="method-title">{{t.delivery}}</text><text class="method-copy">{{t.deliveryCopy}}</text></view></view></view>
+    <view class="field"><text class="field-label">{{methodIndex === 1 ? t.deliveryTime : t.pickupTime}}</text>
+      <view class="field two"><picker range="{{days}}" range-key="label" value="{{dayIndex}}" bindchange="dayChange"><view class="picker">{{days[dayIndex].label}}<text>⌄</text></view></picker><picker wx:if="{{!days[dayIndex].asap}}" range="{{slotLabels}}" value="{{slotIndex}}" bindchange="slotChange"><view class="picker">{{slotLabels[slotIndex]}}<text>⌄</text></view></picker></view>
+      <view class="location-help"><text>{{days[dayIndex].asap ? (methodIndex === 1 ? t.asapDelivery : t.asapPickup) : (methodIndex === 1 ? t.slotDelivery : t.slotPickup)}}</text></view>
+    </view>
+    <view class="field"><text class="field-label">{{methodIndex === 1 ? t.deliveryPlace : t.yourPlace}}</text><view class="location-box" bindtap="pickLocation"><view><text>{{latitude !== null ? placeLabel : t.pickPlace}}</text><view class="muted">{{latitude !== null ? coordinates : t.noPlace}}</view></view><text class="pin">◎</text></view><view class="location-help"><text>{{t.placeHelp}}</text></view></view>
+    <view class="field"><text class="field-label">{{t.accessibility}}</text><textarea class="textarea compact" maxlength="500" placeholder="{{t.accessibilityPlaceholder}}" value="{{accessibilityNotes}}" data-field="accessibilityNotes" bindinput="bindText" /></view>
+    <button class="btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">{{t.submit}}</button>
+  </view>
+  <view class="notice">{{t.emergency}}</view>
+  <view wx:if="{{sheetOpen}}" class="sheet-mask" bindtap="closeSheet">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-head"><text class="title">{{t.sheetTitle}}</text><text class="sheet-close" bindtap="closeSheet">{{t.close}}</text></view>
+      <input class="input sheet-search" placeholder="{{t.searchPlaceholder}}" value="{{search}}" bindinput="searchInput" />
+      <view class="sheet-body">
+        <scroll-view scroll-y class="sheet-list" scroll-into-view="{{scrollTarget}}" scroll-with-animation>
+          <view wx:for="{{visibleGroups}}" wx:for-item="group" wx:key="letter">
+            <view id="letter-{{group.letter === '#' ? 'other' : group.letter}}" class="letter-head">{{group.letter}}</view>
+            <view wx:for="{{group.items}}" wx:key="key" class="product-row {{item.index === productIndex ? 'selected' : ''}}" data-index="{{item.index}}" bindtap="pickProduct">
+              <view class="product-main"><text class="product-name">{{item.name}}</text><text class="product-points">{{item.pointsText}}</text></view>
+              <text class="product-total {{item.maxFree > 0 ? '' : 'empty-stock'}}">{{item.maxFree > 0 ? item.totalText : t.none}}</text>
+            </view>
+          </view>
+          <view wx:if="{{!visibleGroups.length}}" class="sheet-empty">{{t.notFoundBefore}}{{search}}{{t.notFoundAfter}}</view>
+          <view class="product-row other-row {{productIndex >= products.length ? 'selected' : ''}}" data-index="-1" bindtap="pickProduct"><text class="product-name">{{otherLabel}}</text></view>
+        </scroll-view>
+        <view class="letter-bar"><text wx:for="{{groups}}" wx:key="letter" data-letter="{{item.letter}}" bindtap="jumpTo">{{item.letter}}</text></view>
+      </view>
+    </view>
+  </view>
+</view>

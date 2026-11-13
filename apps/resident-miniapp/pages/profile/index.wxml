@@ -1,0 +1,15 @@
+<view class="page">
+  <view wx:if="{{loading && !user.displayName}}" class="state-card"><text><text class="loading-dot"></text>{{t.loading}}</text></view>
+  <view wx:if="{{error && !loading}}" class="state-card error"><text>{{error}}</text></view>
+  <view class="profile-card" bindtap="edit"><view class="avatar">{{user.avatarText}}</view><view><text class="name">{{user.displayName || t.defaultName}}</text><text class="muted">{{t.residentNo}} {{user.userId || '—'}} · {{t.household}} {{user.householdSize || 1}}{{t.people ? ' ' + t.people : ''}} · {{t.tapToEdit}}</text></view></view>
+  <view class="menu">
+    <view class="menu-row" bindtap="go" data-url="/pages/assistant/index"><text class="icon ai">AI</text><view><text>{{t.assistant}}</text><text class="muted">{{t.assistantHint}}</text></view><text>›</text></view>
+    <view class="menu-row" bindtap="go" data-url="/pages/reservations/index"><text class="icon">{{t.codesIcon}}</text><view><text>{{t.codes}}</text><text class="muted">{{t.codesHint}}</text></view><text>›</text></view>
+    <view class="menu-row" bindtap="go" data-url="/pages/notifications/index"><text class="icon">{{t.noticesIcon}}</text><view><text>{{t.notices}}</text><text class="muted">{{t.noticesHint}}</text></view><text>›</text></view>
+    <view wx:if="{{servicePhoneAvailable}}" class="menu-row" bindtap="call"><text class="icon">☎</text><view><text>{{t.hotline}}</text><text class="muted">{{t.hotlineHint}}</text></view><text>›</text></view>
+    <view class="menu-row" bindtap="go" data-url="/pages/operator/index"><text class="icon">{{t.operatorIcon}}</text><view><text>{{t.operator}}</text><text class="muted">{{t.operatorHint}}</text></view><text>›</text></view>
+  </view>
+  <view class="privacy card"><text class="title">{{t.privacy}}</text><text class="muted">{{t.privacyText}}</text></view>
+  <button class="logout" bindtap="logout" loading="{{loggingIn}}" disabled="{{loggingIn}}">{{t.relogin}}</button>
+  <view wx:if="{{editing}}" class="modal-mask"><view class="edit-card"><text class="title">{{t.editTitle}}</text><view class="field"><text class="field-label">{{t.nameLabel}}</text><input class="input" maxlength="100" value="{{editName}}" data-field="editName" bindinput="bindEdit" /></view><view class="field"><text class="field-label">{{t.householdLabel}}</text><input class="input" type="number" value="{{householdSize}}" data-field="householdSize" bindinput="bindEdit" /></view><text class="muted">{{t.householdHint}}</text><button class="btn" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving}}">{{t.save}}</button><button class="cancel" bindtap="edit" data-editing="false" disabled="{{saving}}">{{t.cancel}}</button></view></view>
+</view>

@@ -1,0 +1,68 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">ISOLATED AREAS HELP HUB</text>
+    <text class="hero-title">{{t.heroTitle}}</text>
+    <text class="hero-copy">{{t.heroCopy}}</text>
+    <view class="hero-actions">
+      <button class="hero-btn" bindtap="tab" data-url="/pages/request-create/index">{{t.submitNeed}}</button>
+      <button class="hero-btn ghost" bindtap="go" data-url="/pages/assistant/index">{{t.askAssistant}}</button>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="state-card"><text><text class="loading-dot"></text>{{t.syncing}}</text></view>
+  <view wx:if="{{loadError && !loading}}" class="state-card error"><text>{{loadError}}</text><button class="retry-btn" bindtap="load">{{t.reload}}</button></view>
+
+  <view class="section-title"><text>{{t.nearby}}</text><text bindtap="tab" data-url="/pages/map/index">{{t.viewMap}}</text></view>
+  <view class="card row"><view><text class="title">{{t.currentPlace}}</text><view class="muted">{{placeLabel}}{{placeConfirmed ? '' : t.defaultPlaceHint}}</view></view><button class="mini-btn" bindtap="editPlace">{{placeConfirmed ? t.change : t.set}}</button></view>
+  <view wx:if="{{nearbyError}}" class="state-card error"><text>{{nearbyError}}</text><button class="retry-btn" bindtap="retryNearby">{{t.retry}}</button></view>
+  <view wx:for="{{points}}" wx:key="id" class="card point-card" data-id="{{item.id}}" bindtap="openPoint">
+    <view><text class="title">{{item.name}}</text><text class="pill">{{item.statusName}}</text></view>
+    <view class="muted">{{item.address}}</view>
+    <view wx:if="{{item.hoursText}}" class="muted">{{t.pickupHours}} {{item.hoursText}}</view>
+    <view class="distance">{{item.distanceText}}</view>
+  </view>
+  <view wx:if="{{!points.length && !nearbyError && !loadError && !loading}}" class="empty">{{t.noPoints}}</view>
+
+  <view class="section-title"><text>{{t.inventoryTitle}}</text><text bindtap="tab" data-url="/pages/request-create/index">{{t.requestLink}}</text></view>
+  <scroll-view scroll-x class="inventory-scroll">
+    <view wx:for="{{inventory}}" wx:key="key" class="inventory-card" data-key="{{item.key}}" bindtap="requestProduct">
+      <text class="inventory-category">{{item.categoryName}}</text><text class="title">{{item.name}}</text>
+      <view class="stock-line"><text class="stock">{{item.totalFree}}</text><text class="muted"> {{item.stockText}}</text></view>
+      <view class="point-list">
+        <view wx:for="{{item.points}}" wx:for-item="point" wx:key="name" class="point-stock"><text>{{point.name}}</text><text>{{point.freeText}}</text></view>
+      </view>
+      <text class="apply-link">{{t.tapToApply}}</text>
+    </view>
+  </scroll-view>
+  <view wx:if="{{!inventory.length && !loading && !loadError}}" class="empty compact-empty">{{t.noInventory}}</view>
+
+  <view class="section-title"><text>{{t.recent}}</text><text bindtap="tab" data-url="/pages/requests/index">{{t.allRequests}}</text></view>
+  <view wx:for="{{requests}}" wx:key="id" class="card">
+    <view class="row"><text class="title">#{{item.residentNumber}} {{item.itemDescription}}</text><text class="pill status-pill {{item.urgency === 'CRITICAL' ? 'orange' : ''}}">{{item.statusName}}</text></view>
+    <view class="muted status-line">{{t.quantity}} {{item.quantity}} · {{item.createdText}}</view>
+  </view>
+  <view wx:if="{{!requests.length && !loading}}" class="empty">{{t.noRequests}}</view>
+  <view class="release-id">{{t.releaseName}} v{{releaseId}} · {{t.releaseNote}}</view>
+
+  <view wx:if="{{showLanguagePicker}}" class="language-mask" catchtouchmove="noop">
+    <view class="language-card">
+      <text class="language-title">请选择语言</text>
+      <text class="language-subtitle">Please choose your language</text>
+      <view class="language-option" hover-class="language-option-hover" bindtap="chooseLanguage" data-language="zh">
+        <text class="language-main">中文</text><text class="language-sub">Chinese</text>
+      </view>
+      <view class="language-option" hover-class="language-option-hover" bindtap="chooseLanguage" data-language="en">
+        <text class="language-main">英文</text><text class="language-sub">English</text>
+      </view>
+      <view class="language-remember" bindtap="toggleRemember">
+        <view class="language-check {{rememberLanguage ? 'checked' : ''}}"><text wx:if="{{rememberLanguage}}">✓</text></view>
+        <view class="language-remember-text">
+          <text class="language-remember-main">设为默认语言，以后不再询问</text>
+          <text class="language-remember-sub">Set as default, don't ask again</text>
+        </view>
+      </view>
+      <text class="language-note">选择后，小程序将全部以该语言显示</text>
+      <text class="language-note secondary">The whole WeChat application will be shown in the language you choose</text>
+    </view>
+  </view>
+</view>

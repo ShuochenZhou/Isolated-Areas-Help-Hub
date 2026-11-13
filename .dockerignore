@@ -1,0 +1,13 @@
+.git
+.github
+.env
+**/.env
+**/node_modules
+**/dist
+**/target
+**/coverage
+**/*.log
+**/project.private.config.json
+docs
+tests
+analytics

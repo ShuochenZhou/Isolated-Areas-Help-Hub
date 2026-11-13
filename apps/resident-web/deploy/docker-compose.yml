@@ -1,0 +1,99 @@
+# Production-profile stack for the resident web application. Secrets come from deploy/.env;
+# use .env.example as the variable inventory.
+#
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+name: helphub-web
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: help_hub
+      MYSQL_USER: help_hub
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uhelp_hub", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: help_hub
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
+    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build: ../../../services/backend
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      TZ: Asia/Shanghai
+      MYSQL_ADDRESS: mysql:3306
+      MYSQL_DATABASE: help_hub
+      MYSQL_USERNAME: help_hub
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: help_hub
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
+      PICKUP_CODE_SECRET: ${PICKUP_CODE_SECRET:?set PICKUP_CODE_SECRET (32+ characters)}
+      WEB_LOGIN_ENABLED: "true"
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-https://servicewechat.com}
+      OPERATOR_LOGIN_PHONE: ${OPERATOR_LOGIN_PHONE:-}
+      OPERATOR_LOGIN_PASSWORD: ${OPERATOR_LOGIN_PASSWORD:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen-plus}
+      TENCENT_MAP_KEY: ${TENCENT_MAP_KEY:-}
+      TENCENT_MAP_SK: ${TENCENT_MAP_SK:-}
+      AMAP_KEY: ${AMAP_KEY:-}
+      AMAP_SK: ${AMAP_SK:-}
+      DAILY_RESTOCK_ENABLED: "true"
+    ports: ["${BACKEND_PORT:-8082}:8080"]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../../..
+      dockerfile: apps/resident-web/Dockerfile
+    depends_on: [backend]
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports: ["${WEB_PORT:-8088}:80"]
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:

@@ -1,0 +1,14 @@
+.top { margin-top: 8rpx; }
+.subscribe { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24rpx; padding: 24rpx; border-radius: 24rpx; color: #fff; background: #286a59; }
+.subscribe text { display: block; }
+.subscribe .muted { color: rgba(255,255,255,.72); }
+.subscribe button { margin: 0; border: 0; border-radius: 16rpx; color: #246b58; background: #fff5dd; font-size: 23rpx; }
+.subscribe button::after { border: 0; }
+.notice-row { display: grid; grid-template-columns: 70rpx 1fr; gap: 20rpx; }
+.notice-icon { display: flex; align-items: center; justify-content: center; width: 60rpx; height: 60rpx; border-radius: 20rpx; color: #246b58; background: #e4f1eb; font-size: 22rpx; }
+.notice-row text { display: block; margin-bottom: 8rpx; }
+.payload { color: #9b5d46; font-size: 24rpx; }
+.notice-icon { font-size: 30rpx; font-weight: 700; }
+.notice-icon.warn { color: #b0513a; background: #fbefe9; }
+.notice-icon.code { color: #8a5a2b; background: #f6eadc; }
+.notice-hover { opacity: .75; }

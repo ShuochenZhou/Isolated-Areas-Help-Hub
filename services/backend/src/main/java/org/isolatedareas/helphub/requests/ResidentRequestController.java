@@ -1,0 +1,63 @@
+package org.isolatedareas.helphub.requests;
+
+import jakarta.validation.Valid;
+import java.util.List;
+import org.isolatedareas.helphub.api.IdempotencyKeys;
+import org.isolatedareas.helphub.auth.CurrentUser;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/resident/requests")
+public class ResidentRequestController {
+    private final SupplyRequestRepository requests;
+    private final SubmissionService submissions;
+    private final RequestService requestService;
+
+    public ResidentRequestController(SupplyRequestRepository requests, SubmissionService submissions,
+                                     RequestService requestService) {
+        this.requests = requests;
+        this.submissions = submissions;
+        this.requestService = requestService;
+    }
+
+    /** Withdraws the resident's own request while it still waits for review. */
+    @PostMapping("/{id}/cancel")
+    SupplyRequestView cancel(@AuthenticationPrincipal Jwt jwt, @PathVariable long id) {
+        return requestService.cancelByResident(id, CurrentUser.id(jwt));
+    }
+
+    @PostMapping
+    SupplyRequestView create(@AuthenticationPrincipal Jwt jwt,
+                             @RequestHeader(value = "Idempotency-Key", required = false) String key,
+                             @RequestHeader(value = "X-Idempotency-Key", required = false) String cloudRunKey,
+                             @RequestParam(value = "idempotencyKey", required = false) String queryKey,
+                             @Valid @RequestBody CreateSupplyRequest input) {
+        long userId = CurrentUser.id(jwt);
+        return submissions.submit(userId, IdempotencyKeys.resolve(key, cloudRunKey, queryKey), input);
+    }
+
+    @GetMapping
+    List<SupplyRequestView> mine(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam(defaultValue = "50") int limit,
+        @RequestParam(defaultValue = "0") int offset
+    ) {
+        return requests.findByResident(CurrentUser.id(jwt), Math.min(Math.max(limit, 1), 100), Math.max(offset, 0));
+    }
+
+    @GetMapping("/{id}")
+    SupplyRequestView get(@AuthenticationPrincipal Jwt jwt, @PathVariable long id) {
+        return requests.findOwned(id, CurrentUser.id(jwt))
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Supply request not found"));
+    }
+}

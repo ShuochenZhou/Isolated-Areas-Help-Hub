@@ -1,0 +1,27 @@
+.picker-page { display: flex; flex-direction: column; height: 100vh; }
+/* Typing the address comes first; the map below only fine-tunes. Inputs stay in normal
+   document flow - a native <input> floating over a <map> is fragile across devices. */
+.address-form { flex: none; padding: 26rpx 28rpx 20rpx; background: #fffdf8; box-shadow: 0 8rpx 24rpx rgba(32,59,50,.08); position: relative; z-index: 1; }
+.search-row { display: flex; align-items: center; gap: 16rpx; margin-top: 12rpx; }
+.search-input { flex: 1; min-width: 0; }
+.search-btn { flex: none; margin: 0 !important; }
+.hint { display: block; margin-top: 12rpx; font-size: 23rpx; line-height: 1.5; }
+.notice { margin-top: 16rpx; padding: 16rpx 20rpx; border-radius: 16rpx; color: #8b4c38; background: #fff0e8; font-size: 24rpx; line-height: 1.5; }
+.results { margin-top: 16rpx; }
+.results-title { display: block; margin-bottom: 8rpx; color: #52655e; font-size: 24rpx; }
+.results-list { max-height: 330rpx; }
+.result { padding: 16rpx 18rpx; margin-bottom: 10rpx; border: 2rpx solid #e6e0d2; border-radius: 16rpx; background: #fff; }
+.result-chosen { border-color: #246b58; background: #eef6f2; }
+.result-title { display: block; color: #203b32; font-size: 27rpx; font-weight: 600; }
+.result-address { display: block; margin-top: 4rpx; color: #7b8983; font-size: 23rpx; }
+.map-wrap { position: relative; flex: 1; min-height: 320rpx; overflow: hidden; }
+.picker-map { width: 100%; height: 100%; }
+.crosshair { position: absolute; top: 50%; left: 50%; width: 56rpx; height: 70rpx; margin: -70rpx 0 0 -28rpx; pointer-events: none; }
+.crosshair-head { width: 44rpx; height: 44rpx; margin: 0 auto; box-sizing: border-box; border: 7rpx solid #fffdf8; border-radius: 50%; background: #c65c3f; box-shadow: 0 6rpx 18rpx rgba(32,59,50,.3); }
+.crosshair-stem { width: 5rpx; height: 26rpx; margin: 0 auto; background: #c65c3f; }
+.picker-tip { position: absolute; top: 20rpx; left: 50%; padding: 12rpx 22rpx; border-radius: 18rpx; color: #52655e; background: rgba(255,253,248,.96); font-size: 23rpx; white-space: nowrap; transform: translateX(-50%); box-shadow: 0 8rpx 28rpx rgba(32,59,50,.12); }
+.picker-form { flex: none; padding: 24rpx 28rpx calc(30rpx + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 30rpx 30rpx 0 0; background: #fffdf8; box-shadow: 0 -10rpx 34rpx rgba(32,59,50,.1); }
+.coord-row { margin-bottom: 14rpx; }
+.coords { flex: none; color: #7b8983; font-size: 25rpx; }
+.range-text { margin-bottom: 14rpx; font-size: 24rpx; }
+.range-warning { margin-bottom: 18rpx; padding: 16rpx 20rpx; border-radius: 18rpx; color: #8b4c38; background: #fff0e8; font-size: 24rpx; line-height: 1.5; }

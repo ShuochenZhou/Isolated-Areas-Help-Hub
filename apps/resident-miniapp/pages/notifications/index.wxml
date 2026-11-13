@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="section-title top"><text>{{t.title}}</text><text>{{t.pullToRefresh}}</text></view>
+  <view wx:if="{{loading && !rows.length}}" class="state-card"><text><text class="loading-dot"></text>{{t.loading}}</text></view>
+  <view wx:if="{{error && !loading}}" class="state-card error"><text>{{error}}</text><button class="retry-btn" bindtap="load">{{t.reload}}</button></view>
+  <view wx:if="{{subscriptionAvailable}}" class="subscribe"><view><text class="title">{{t.reminders}}</text><text class="muted">{{t.remindersHint}}</text></view><button bindtap="subscribe">{{t.turnOn}}</button></view>
+  <view wx:for="{{rows}}" wx:key="id" class="card notice-row" hover-class="notice-hover" data-index="{{index}}" bindtap="open"><view class="notice-icon {{item.tone}}">{{item.mark}}</view><view><text class="title">{{item.title}}</text><text class="muted">{{item.createdText}}</text><text class="payload" wx:if="{{item.payload.requestNumber}}">{{t.request}} #{{item.payload.requestNumber}}</text><text class="payload" wx:if="{{item.payload.itemName}}">{{item.payload.itemName}}</text></view></view>
+  <view wx:if="{{!rows.length && !loading && !error}}" class="empty">{{t.empty}}</view>
+</view>

@@ -1,0 +1,38 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/map/index",
+    "pages/request-create/index",
+    "pages/requests/index",
+    "pages/profile/index",
+    "pages/assistant/index",
+    "pages/reservations/index",
+    "pages/notifications/index",
+    "pages/feedback/index",
+    "pages/place/index",
+    "pages/operator/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "邻需通",
+    "navigationBarBackgroundColor": "#f7f3e9",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f1e7",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#73817b",
+    "selectedColor": "#246b58",
+    "backgroundColor": "#fffdf8",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "首页" },
+      { "pagePath": "pages/map/index", "text": "地图" },
+      { "pagePath": "pages/request-create/index", "text": "求助" },
+      { "pagePath": "pages/requests/index", "text": "进度" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,46 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.key
+*.crt
+*.pfx
+*.jks
+
+# Java
+**/target/
+*.class
+
+# Node.js
+**/node_modules/
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
+**/.vite/
+**/.vercel/
+**/.vercel-output/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs, temporary files, and local browser state
+*.log
+*.tmp
+tmp/
+.tmp-*/
+**/playwright-report/
+**/test-results/
+**/.auth/
+
+# WeChat Developer Tools
+**/project.private.config.json
+
+# Local infrastructure data
+mysql-data/
+redis-data/
+rabbitmq-data/
+prometheus-data/
+grafana-data/

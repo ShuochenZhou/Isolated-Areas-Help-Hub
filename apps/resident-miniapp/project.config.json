@@ -1,0 +1,20 @@
+{
+  "description": "Isolated Areas Help Hub resident WeChat application",
+  "packOptions": {
+    "ignore": [
+      { "type": "file", "value": "README.md" }
+    ]
+  },
+  "setting": {
+    "useCompilerPlugins": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": false
+  },
+  "compileType": "miniprogram",
+  "appid": "wx8e6d63e949e813c8",
+  "projectname": "isolated-areas-help-hub",
+  "miniprogramRoot": "./"
+}

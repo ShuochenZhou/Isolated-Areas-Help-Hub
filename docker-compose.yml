@@ -1,0 +1,177 @@
+name: isolated-areas-help-hub
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-help_hub}
+      MYSQL_USER: ${MYSQL_USER:-help_hub}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-help-hub-local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-help-hub-root-local}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-help-hub-root-local}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-help-hub-redis-local}"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-help-hub-redis-local} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-help_hub}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-help-hub-rabbit-local}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./services/backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-help_hub}
+      MYSQL_USER: ${MYSQL_USER:-help_hub}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-help-hub-local}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-help-hub-redis-local}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-help_hub}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-help-hub-rabbit-local}
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-me-now}
+      PICKUP_CODE_SECRET: ${PICKUP_CODE_SECRET:-local-pickup-code-secret-change-me-now}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-qwen-plus}
+      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+      WECHAT_PAY_MERCHANT_ID: ${WECHAT_PAY_MERCHANT_ID:-}
+      WECHAT_PAY_MERCHANT_SERIAL: ${WECHAT_PAY_MERCHANT_SERIAL:-}
+      WECHAT_PAY_PRIVATE_KEY_PATH: ${WECHAT_PAY_PRIVATE_KEY_PATH:-}
+      WECHAT_PAY_API_V3_KEY: ${WECHAT_PAY_API_V3_KEY:-}
+      WECHAT_PAY_NOTIFY_URL: ${WECHAT_PAY_NOTIFY_URL:-}
+      WECHAT_PAY_REFUND_NOTIFY_URL: ${WECHAT_PAY_REFUND_NOTIFY_URL:-}
+      WECHAT_SUBSCRIBE_TEMPLATE_ID: ${WECHAT_SUBSCRIBE_TEMPLATE_ID:-}
+      WECHAT_TEMPLATE_TITLE_FIELD: ${WECHAT_TEMPLATE_TITLE_FIELD:-thing1}
+      WECHAT_TEMPLATE_STATUS_FIELD: ${WECHAT_TEMPLATE_STATUS_FIELD:-phrase2}
+      WECHAT_TEMPLATE_REFERENCE_FIELD: ${WECHAT_TEMPLATE_REFERENCE_FIELD:-character_string3}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep UP"]
+      start_period: 30s
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: ./apps/admin-web
+      args:
+        VITE_TENCENT_MAP_KEY: ${TENCENT_MAP_WEB_KEY:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  resident-web:
+    build:
+      context: .
+      dockerfile: apps/resident-web/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8088:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-help-hub-grafana-local}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:
+  prometheus-data:
+  grafana-data:
